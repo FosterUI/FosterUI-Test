@@ -299,5 +299,44 @@
     {%- if settings.predictive_search_enabled -%}
       <script src="{{ 'predictive-search.js' | asset_url }}" defer="defer"></script>
     {%- endif -%}
+
+    <script>
+      async function applyTagDiscounts(cart) {
+  const customerDiscounts = {
+    // Customer tag  =>   Percent To Discount  Message to display in cart
+    "MAP": { percent_off: 10, message: "10% Military Discount" },
+    "FR": { percent_off: 10, message: "10% First Responder Discount" },
+    "BUS": { percent_off: 15, message: "15% Business Discount" },
+  };
+
+  const productTagExclusions = ["_NoDiscount"];
+
+  // Check for customer tags
+  const customerTags = cart.customer?.tags;
+  if (customerTags) {
+    // Find the highest discount tag
+    const discountTag = customerDiscounts.keys().reverse().find((tag) => customerTags.includes(tag));
+    if (discountTag) {
+      const discount = customerDiscounts[discountTag];
+
+      for (const lineItem of cart.line_items) {
+        const product = lineItem.variant.product;
+
+        // Apply discount if product is eligible
+        if (!product.tags.some((tag) => productTagExclusions.includes(tag)) && !product.gift_card) {
+          const discountedPrice = lineItem.line_price - lineItem.line_price * (discount.percent_off / 100);
+          lineItem.change_line_price(discountedPrice, { message: discount.message });
+        }
+      }
+    }
+  }
+
+  return cart;
+}
+
+exports.applyTagDiscounts = applyTagDiscounts;
+
+    </script>
+    
   </body>
 </html>
